@@ -487,13 +487,92 @@ Expected result:
 ```
 
 ---
+## MoneyGraph — Full AML Pipeline
 
-# HackAlem AI
+Полный воспроизводимый pipeline для анализа транзакционного графа.
 
-**Track 02 — Finance**
+### Входные данные
 
-Project:
+Локально ожидаются:
 
-**QazLedger MoneyGraph**
+- `data/edges.parquet`
+- `data/nodes.parquet`
+- `data/transactions.parquet`
 
-Built as an extension of QazLedger AI for transaction-network and AML analysis.
+Датасет не публикуется в репозитории.
+
+### Запуск
+
+```bash
+pip install -r requirements.txt
+python pipeline/pipeline.py --data data --out output --top 20
+```
+
+### Результат
+
+Pipeline создаёт:
+
+- `output/nodes_roles.csv`
+- `output/clusters.csv`
+- `output/top_nodes.csv`
+
+### Роли узлов
+
+Для каждого узла определяется одна из ролей:
+
+- `consolidator`
+- `transit`
+- `distributor`
+- `terminal`
+- `coordinator`
+- `peripheral`
+
+Для каждого узла рассчитываются:
+
+- `role_score`
+- `priority_score`
+- `cluster_id`
+- текстовое `evidence`
+
+### Data-quality safeguards
+
+Pipeline учитывает особенности исходного графа:
+
+- узлы `depth=4` не считаются автоматически `terminal`;
+- для seed-клиентов flow ratio не используется для определения `terminal` и `transit`;
+- роли рассчитываются алгоритмически, без hardcoded GID.
+
+### Clustering
+
+Для поиска сообществ используется Louvain clustering.
+
+Результат на предоставленном датасете:
+
+- 2,248 узлов;
+- 91 кластер;
+- 8 кластеров содержат более одного seed-клиента.
+
+### Top Nodes
+
+Формируется ранжированный список минимум из 20 приоритетных узлов.
+
+Приоритет учитывает:
+
+- роль узла;
+- `role_score`;
+- входящие и исходящие связи;
+- объёмы денежных потоков;
+- PageRank;
+- betweenness centrality.
+
+### Benchmark
+
+Проверенный локальный запуск:
+
+- Python 3.14
+- Windows
+- 2,248 nodes
+- 3,119 edges
+- полный pipeline: **~3.97 seconds**
+
+Требование `< 5 minutes` выполняется с большим запасом.
