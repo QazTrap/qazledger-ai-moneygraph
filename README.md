@@ -887,7 +887,6 @@ The web demo visualizes a transaction network and its legacy Risk Score.
 
 The full Python pipeline performs the reproducible six-role AML analysis and CSV export.
 
-![QazLedger MoneyGraph](screenshots/moneygraph.jpg)
 
 ---
 
