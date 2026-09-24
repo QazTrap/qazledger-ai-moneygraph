@@ -397,6 +397,54 @@ clusters.csv: 91 rows
 top_nodes.csv: 20 rows
 ```
 
+## MoneyGraph Viewer
+
+After the full pipeline has generated the CSV outputs, create the local interactive AML viewer:
+
+```bash
+py pipeline/viewer.py --data data --out output
+```
+
+This creates:
+
+```text
+output/viewer.html
+```
+
+Open it on Windows:
+
+```bash
+start output/viewer.html
+```
+
+The Viewer is self-contained, works locally and does not require a web server or internet connection.
+
+Viewer capabilities:
+
+- search any GID from the 2,248 analyzed nodes;
+- display the selected node's role;
+- display `role_score`;
+- display `priority_score`;
+- display `cluster_id`;
+- display human-readable `evidence`;
+- show incoming and outgoing direct links;
+- show transfer amounts and transaction counts;
+- show flow direction with arrows;
+- color-code nodes by role;
+- highlight nodes from the same cluster;
+- navigate to neighboring GIDs by clicking them.
+
+For readability, the diagram displays up to 24 highest-volume direct links around the selected node. The complete incoming and outgoing link lists remain available in the side panel.
+
+Example verified Viewer generation:
+
+```text
+QazLedger MoneyGraph Viewer generated
+file: output\viewer.html
+nodes: 2248
+edges: 3119
+```
+
 Python dependencies:
 
 ```text
@@ -405,6 +453,7 @@ pyarrow>=17.0
 networkx>=3.3
 numpy>=1.26
 scipy>=1.18
+matplotlib>=3.9
 ```
 
 ---
@@ -433,6 +482,8 @@ Priority Score
 Explainable evidence
         ↓
 CSV outputs
+        ↓
+Interactive GID Viewer
         ↓
 AML analyst review
 ```
@@ -799,6 +850,7 @@ Parquet
 → Six Roles
 → Priority Score
 → CSV Outputs
+→ Interactive GID Viewer
 → Analyst Review
 ```
 
@@ -901,7 +953,9 @@ Expected result:
 │   └── server.js
 │
 ├── pipeline/
-│   └── pipeline.py
+│   ├── pipeline.py
+│   ├── visualize.py
+│   └── viewer.py
 │
 ├── 1c/
 │   ├── README.md
@@ -932,11 +986,18 @@ Both are ignored by Git.
 
 # Reproducibility Summary
 
-Full AML pipeline:
+Full AML pipeline and local Viewer:
 
 ```bash
 py -m pip install -r requirements.txt
 py pipeline/pipeline.py --data data --out output --top 20
+py pipeline/viewer.py --data data --out output
+```
+
+Open the Viewer on Windows:
+
+```bash
+start output/viewer.html
 ```
 
 Verified:
@@ -946,7 +1007,9 @@ Verified:
 91 clusters
 20 ranked top nodes
 8 multi-seed clusters
-~3.97 second runtime
+3119 graph edges loaded into Viewer
+interactive GID search verified
+~3.97 second pipeline runtime
 ```
 
 No hardcoded GIDs are used.
