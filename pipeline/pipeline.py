@@ -157,7 +157,7 @@ def add_roles(df: pd.DataFrame) -> pd.DataFrame:
             role = "transit"
             score = max(0.60, clamp01(1.0 - abs(ratio - 1.0) / 0.20))
             why = f"Сквозной поток: out/in={ratio:.2f}; in={incoming:,.0f}, out={outgoing:,.0f} KZT."
-        elif depth < 4 and incoming > 0 and outgoing <= incoming * 0.10:
+        elif (not r.is_seed) and depth < 4 and incoming > 0 and outgoing <= incoming * 0.10:
             role = "terminal"
             score = clamp01(0.60 + 0.40 * (1.0 - safe_ratio(outgoing, incoming)))
             why = f"Средства в основном остаются: in={incoming:,.0f}, out={outgoing:,.0f} KZT; depth={depth}."
