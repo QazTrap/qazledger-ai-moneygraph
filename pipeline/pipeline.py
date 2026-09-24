@@ -153,7 +153,7 @@ def add_roles(df: pd.DataFrame) -> pd.DataFrame:
             role = "distributor"
             score = clamp01(0.60 + 0.20 * min(1.0, outdeg / q_out) + 0.20 * r.out_sum_kzt_norm)
             why = f"Распределяет средства на {outdeg} получателей; исходящий поток {outgoing:,.0f} KZT."
-        elif incoming > 0 and outgoing > 0 and 0.80 <= ratio <= 1.20:
+        elif (not r.is_seed) and incoming > 0 and outgoing > 0 and 0.80 <= ratio <= 1.20:
             role = "transit"
             score = max(0.60, clamp01(1.0 - abs(ratio - 1.0) / 0.20))
             why = f"Сквозной поток: out/in={ratio:.2f}; in={incoming:,.0f}, out={outgoing:,.0f} KZT."
