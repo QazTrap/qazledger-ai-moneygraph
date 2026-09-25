@@ -433,13 +433,85 @@ Viewer capabilities:
 - color-code nodes by role;
 - highlight nodes from the same cluster;
 - navigate to neighboring GIDs by clicking them.
+- switch the Viewer interface between Russian and English (`RU / EN`).
 
 For readability, the diagram displays up to 24 highest-volume direct links around the selected node. The complete incoming and outgoing link lists remain available in the side panel.
+
+
+### How to use the Viewer / Как пользоваться Viewer
+
+The Viewer supports **RU / EN** language switching. Russian is opened by default; use the **RU / EN** buttons in the top-right corner to switch the interface language.
+
+#### Quick guide
+
+1. Run the Viewer generator:
+
+```bash
+py pipeline/viewer.py --data data --out output
+```
+
+2. Open the generated file on Windows:
+
+```bash
+start output/viewer.html
+```
+
+3. Enter a full `GID` in the search field or open the #1 node from the Top-20 ranking.
+
+4. Review the selected node:
+
+- **Role / Роль** — the node's functional role in the transaction network.
+- **Role score / Уверенность в роли** — how strongly the calculated graph metrics support the assigned role.
+- **Priority score / Приоритет проверки** — analytical review priority in the range `0..1`. It is **not** a probability of fraud or guilt.
+- **Cluster / Кластер** — the community of more closely connected nodes.
+- **Evidence / Обоснование** — the graph-based reason for the role assignment.
+
+5. Read the network diagram:
+
+- the center circle is the selected `GID`;
+- surrounding circles are directly connected neighboring GIDs;
+- arrows show the direction of money flow;
+- thicker arrows represent larger aggregated transfer volume;
+- node colors represent functional roles;
+- a highlighted border indicates a node from the same cluster as the selected node.
+
+6. Use the side panel:
+
+- **Incoming links / Входящие связи** — who sent funds to the selected GID;
+- **Outgoing links / Исходящие связи** — where the selected GID sent funds;
+- each row shows the connected GID, total amount and number of transactions;
+- click a neighboring GID to continue exploring the network.
+
+#### How to interpret the Viewer
+
+A simple way to read the screen:
+
+```text
+GID            → who is being analyzed
+Role           → what function the node performs in the graph
+Links          → who it transacts with
+Arrows         → direction of money movement
+Amount         → total value of transfers on the link
+Transactions   → number of transfers on the link
+Cluster        → which connected group the node belongs to
+Priority score → which nodes should be reviewed earlier
+Evidence       → why the algorithm assigned the role
+```
+
+Example:
+
+```text
+in=8, out=73
+```
+
+means that the selected node has 8 incoming neighbors and 73 outgoing neighbors in the provided graph.
+
+The Viewer is an analytical navigation tool. A high `priority_score` does not mean that a person or account is fraudulent. Final assessment remains with the AML analyst.
 
 Example verified Viewer generation:
 
 ```text
-QazLedger MoneyGraph Viewer generated
+QazLedger MoneyGraph Viewer generated / Viewer создан
 file: output\viewer.html
 nodes: 2248
 edges: 3119
