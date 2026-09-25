@@ -8,7 +8,7 @@ import pandas as pd
 
 
 HTML_TEMPLATE = r"""<!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,8 +30,20 @@ body{
   color:var(--text);
 }
 .wrap{max-width:1500px;margin:0 auto;padding:20px}
+.header{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap
+}
 h1{margin:0 0 4px;font-size:24px}
 .sub{color:var(--muted);margin-bottom:16px}
+.lang-switch{
+  display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);
+  padding:4px;border-radius:10px
+}
+.lang-btn{
+  padding:7px 11px;border:0;border-radius:7px;background:transparent;
+  color:#475467;font-weight:700;cursor:pointer
+}
+.lang-btn.active{background:var(--accent);color:#fff}
 .toolbar{
   display:flex;gap:10px;flex-wrap:wrap;align-items:center;
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;
@@ -80,13 +92,21 @@ svg{display:block;width:100%;min-width:820px;height:700px;background:#fff;border
 </head>
 <body>
 <div class="wrap">
-  <h1>QazLedger MoneyGraph Viewer</h1>
-  <div class="sub">Search a GID, inspect its role, cluster, priority and direct transaction links.</div>
+  <div class="header">
+    <div>
+      <h1>QazLedger MoneyGraph Viewer</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <div class="lang-switch" aria-label="Language">
+      <button class="lang-btn" id="langRu" type="button">RU</button>
+      <button class="lang-btn" id="langEn" type="button">EN</button>
+    </div>
+  </div>
 
   <div class="toolbar">
-    <input id="gidInput" inputmode="numeric" placeholder="Enter full GID">
-    <button id="searchBtn">Find GID</button>
-    <button id="topBtn" class="secondary">Open #1 Top Node</button>
+    <input id="gidInput" inputmode="numeric">
+    <button id="searchBtn"></button>
+    <button id="topBtn" class="secondary"></button>
     <span id="status" class="status"></span>
   </div>
 
@@ -94,9 +114,9 @@ svg{display:block;width:100%;min-width:820px;height:700px;background:#fff;border
 
   <div class="grid">
     <div class="card">
-      <h2 id="graphTitle">Network</h2>
+      <h2 id="graphTitle"></h2>
       <div id="graphWrap">
-        <svg id="graph" viewBox="0 0 1100 700" role="img" aria-label="Transaction network around selected GID">
+        <svg id="graph" viewBox="0 0 1100 700" role="img">
           <defs>
             <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,6 L9,3 z" fill="#98a2b3"></path>
@@ -110,13 +130,13 @@ svg{display:block;width:100%;min-width:820px;height:700px;background:#fff;border
     </div>
 
     <div class="card">
-      <h2>Selected node</h2>
-      <div id="details"><div class="small">Choose a GID to inspect.</div></div>
+      <h2 id="selectedHeading"></h2>
+      <div id="details"></div>
 
-      <h2 style="margin-top:18px">Incoming links</h2>
+      <h2 id="incomingHeading" style="margin-top:18px"></h2>
       <div id="incoming" class="list"></div>
 
-      <h2 style="margin-top:18px">Outgoing links</h2>
+      <h2 id="outgoingHeading" style="margin-top:18px"></h2>
       <div id="outgoing" class="list"></div>
     </div>
   </div>
@@ -128,12 +148,94 @@ const EDGES = __EDGES_JSON__;
 const TOP_GIDS = __TOP_GIDS_JSON__;
 
 const ROLE_STYLE = {
-  coordinator:  {fill:"#7c3aed", label:"coordinator"},
-  consolidator: {fill:"#2563eb", label:"consolidator"},
-  distributor:  {fill:"#ea580c", label:"distributor"},
-  transit:      {fill:"#0891b2", label:"transit"},
-  terminal:     {fill:"#16a34a", label:"terminal"},
-  peripheral:   {fill:"#94a3b8", label:"peripheral"}
+  coordinator:  {fill:"#7c3aed"},
+  consolidator: {fill:"#2563eb"},
+  distributor:  {fill:"#ea580c"},
+  transit:      {fill:"#0891b2"},
+  terminal:     {fill:"#16a34a"},
+  peripheral:   {fill:"#94a3b8"}
+};
+
+const ROLE_NAMES = {
+  ru: {
+    coordinator:"Координатор",
+    consolidator:"Консолидатор",
+    distributor:"Распределитель",
+    transit:"Транзит",
+    terminal:"Конечный получатель",
+    peripheral:"Периферия",
+    unknown:"Неизвестно"
+  },
+  en: {
+    coordinator:"Coordinator",
+    consolidator:"Consolidator",
+    distributor:"Distributor",
+    transit:"Transit",
+    terminal:"Terminal",
+    peripheral:"Peripheral",
+    unknown:"Unknown"
+  }
+};
+
+const T = {
+  ru: {
+    subtitle:"Поиск GID, роль, кластер, приоритет и прямые транзакционные связи.",
+    placeholder:"Введите полный GID",
+    find:"Найти GID",
+    top:"Открыть узел №1 из Top-20",
+    network:"Сеть",
+    selectedNode:"Выбранный узел",
+    choose:"Выберите GID для просмотра.",
+    incoming:"Входящие связи",
+    outgoing:"Исходящие связи",
+    role:"Роль",
+    roleScore:"Уверенность в роли",
+    priorityScore:"Приоритет проверки",
+    cluster:"Кластер",
+    evidence:"Обоснование",
+    noLinks:"В предоставленном графе прямых связей нет.",
+    sameCluster:"тот же кластер, что и выбранный",
+    selected:"ВЫБРАН",
+    tx:"транз.",
+    found:"Найден",
+    notFound:"GID не найден в nodes_roles.csv",
+    directAround:"Прямые связи узла",
+    showing:"Показано",
+    neighbors:"соседних узлов",
+    directLinks:"прямых связей",
+    hiddenPrefix:"Ещё",
+    hiddenSuffix:"связей с меньшим объёмом скрыты на схеме для читаемости, но остаются в списке справа.",
+    graphAria:"Транзакционная сеть вокруг выбранного GID"
+  },
+  en: {
+    subtitle:"Search a GID, inspect its role, cluster, priority and direct transaction links.",
+    placeholder:"Enter full GID",
+    find:"Find GID",
+    top:"Open #1 Top-20 Node",
+    network:"Network",
+    selectedNode:"Selected node",
+    choose:"Choose a GID to inspect.",
+    incoming:"Incoming links",
+    outgoing:"Outgoing links",
+    role:"Role",
+    roleScore:"Role score",
+    priorityScore:"Priority score",
+    cluster:"Cluster",
+    evidence:"Evidence",
+    noLinks:"No direct links in the provided graph.",
+    sameCluster:"same cluster as selected",
+    selected:"SELECTED",
+    tx:"tx",
+    found:"Found",
+    notFound:"GID not found in nodes_roles.csv",
+    directAround:"Direct network around",
+    showing:"Showing",
+    neighbors:"neighboring nodes",
+    directLinks:"direct links",
+    hiddenPrefix:"",
+    hiddenSuffix:"lower-volume links are omitted from the diagram for readability; they remain listed on the right.",
+    graphAria:"Transaction network around selected GID"
+  }
 };
 
 const nodeMap = new Map(NODES.map(n => [n.gid, n]));
@@ -153,9 +255,41 @@ for (const arr of outgoingMap.values()) arr.sort((a,b)=>b.sum_kzt-a.sum_kzt);
 const $ = id => document.getElementById(id);
 const svgNS = "http://www.w3.org/2000/svg";
 let currentGid = null;
+let currentLang = localStorage.getItem("moneygraph_lang") || "ru";
+if (!["ru","en"].includes(currentLang)) currentLang = "ru";
+
+function tr(key) {
+  return T[currentLang][key] || key;
+}
+
+function roleName(role, withCode=false) {
+  const name = (ROLE_NAMES[currentLang] || ROLE_NAMES.en)[role] || role;
+  if (currentLang === "ru" && withCode) return `${name} (${role})`;
+  return name;
+}
+
+function shortRoleName(role) {
+  if (currentLang === "en") return role;
+  const m = {
+    coordinator:"координатор",
+    consolidator:"консолид.",
+    distributor:"распред.",
+    transit:"транзит",
+    terminal:"конечный",
+    peripheral:"периферия"
+  };
+  return m[role] || role;
+}
 
 function money(v) {
-  return new Intl.NumberFormat("en-US", {maximumFractionDigits:0}).format(Number(v || 0)) + " KZT";
+  const locale = currentLang === "ru" ? "ru-RU" : "en-US";
+  const suffix = currentLang === "ru" ? " ₸" : " KZT";
+  return new Intl.NumberFormat(locale, {maximumFractionDigits:0}).format(Number(v || 0)) + suffix;
+}
+
+function compactMoney(v) {
+  const locale = currentLang === "ru" ? "ru-RU" : "en-US";
+  return new Intl.NumberFormat(locale,{notation:"compact",maximumFractionDigits:1}).format(v);
 }
 
 function shortGid(gid) {
@@ -173,10 +307,39 @@ function roleColor(role) {
   return (ROLE_STYLE[role] || {fill:"#64748b"}).fill;
 }
 
+function evidenceForLanguage(raw) {
+  const s = String(raw ?? "");
+  if (currentLang === "ru") return s;
+
+  let m;
+  if ((m = s.match(/^Высокая центральность: in=(\d+), out=(\d+); связывает несколько направлений потока\.$/))) {
+    return `High centrality: in=${m[1]}, out=${m[2]}; connects multiple flow directions.`;
+  }
+  if ((m = s.match(/^Получает средства от (\d+) узлов; входящий поток (.+) KZT\.$/))) {
+    return `Receives funds from ${m[1]} nodes; incoming flow ${m[2]} KZT.`;
+  }
+  if ((m = s.match(/^Распределяет средства на (\d+) получателей; исходящий поток (.+) KZT\.$/))) {
+    return `Distributes funds to ${m[1]} recipients; outgoing flow ${m[2]} KZT.`;
+  }
+  if ((m = s.match(/^Сквозной поток: out\/in=([0-9.]+); in=(.+), out=(.+) KZT\.$/))) {
+    return `Pass-through flow: out/in=${m[1]}; in=${m[2]}, out=${m[3]} KZT.`;
+  }
+  if ((m = s.match(/^Средства в основном остаются: in=(.+), out=(.+) KZT; depth=(\d+)\.$/))) {
+    return `Most funds are retained: in=${m[1]}, out=${m[2]} KZT; depth=${m[3]}.`;
+  }
+  if (s === "Периферия: depth=4 — граница выгрузки, поэтому отсутствие исходящих не доказывает terminal.") {
+    return "Peripheral: depth=4 is the extraction boundary, so missing outgoing links do not prove a terminal role.";
+  }
+  if ((m = s.match(/^Выраженной роли нет: in_degree=(\d+), out_degree=(\d+)\.$/))) {
+    return `No strong functional role: in_degree=${m[1]}, out_degree=${m[2]}.`;
+  }
+  return s;
+}
+
 function buildLegend() {
-  $("legend").innerHTML = Object.entries(ROLE_STYLE)
-    .map(([k,v]) => `<div class="legend-item"><span class="dot" style="background:${v.fill}"></span>${k}</div>`)
-    .join("") + `<div class="legend-item"><span style="width:14px;height:14px;border:3px solid #111827;border-radius:50%;display:inline-block"></span>same cluster as selected</div>`;
+  $("legend").innerHTML = Object.keys(ROLE_STYLE)
+    .map(role => `<div class="legend-item"><span class="dot" style="background:${ROLE_STYLE[role].fill}"></span>${esc(roleName(role, currentLang === "ru"))}</div>`)
+    .join("") + `<div class="legend-item"><span style="width:14px;height:14px;border:3px solid #111827;border-radius:50%;display:inline-block"></span>${esc(tr("sameCluster"))}</div>`;
 }
 
 function setStatus(msg) {
@@ -186,7 +349,7 @@ function setStatus(msg) {
 function renderList(containerId, arr, direction) {
   const el = $(containerId);
   if (!arr || !arr.length) {
-    el.innerHTML = `<div class="small" style="padding:8px 0">No direct links in the provided graph.</div>`;
+    el.innerHTML = `<div class="small" style="padding:8px 0">${esc(tr("noLinks"))}</div>`;
     return;
   }
 
@@ -196,11 +359,11 @@ function renderList(containerId, arr, direction) {
     return `<div class="row">
       <div>
         <button class="gidbtn" data-gid="${esc(other)}">${esc(other)}</button>
-        <div class="small">${n ? esc(n.role) + " · cluster " + esc(n.cluster_id) : ""}</div>
+        <div class="small">${n ? esc(roleName(n.role, currentLang === "ru")) + " · " + esc(tr("cluster").toLowerCase()) + " " + esc(n.cluster_id) : ""}</div>
       </div>
       <div style="text-align:right">
         <strong>${esc(money(e.sum_kzt))}</strong>
-        <div class="small">${esc(e.n_tx)} tx</div>
+        <div class="small">${esc(e.n_tx)} ${esc(tr("tx"))}</div>
       </div>
     </div>`;
   }).join("");
@@ -213,11 +376,11 @@ function renderList(containerId, arr, direction) {
 function renderDetails(n) {
   $("details").innerHTML = `
     <div class="metric"><span>GID</span><strong>${esc(n.gid)}</strong></div>
-    <div class="metric"><span>Role</span><strong><span class="badge">${esc(n.role)}</span></strong></div>
-    <div class="metric"><span>Role score</span><strong>${Number(n.role_score).toFixed(4)}</strong></div>
-    <div class="metric"><span>Priority score</span><strong>${Number(n.priority_score).toFixed(4)}</strong></div>
-    <div class="metric"><span>Cluster</span><strong>${esc(n.cluster_id)}</strong></div>
-    <div class="evidence"><strong>Evidence</strong><br>${esc(n.evidence)}</div>
+    <div class="metric"><span>${esc(tr("role"))}</span><strong><span class="badge">${esc(roleName(n.role, currentLang === "ru"))}</span></strong></div>
+    <div class="metric"><span>${esc(tr("roleScore"))}</span><strong>${Number(n.role_score).toFixed(4)}</strong></div>
+    <div class="metric"><span>${esc(tr("priorityScore"))}</span><strong>${Number(n.priority_score).toFixed(4)}</strong></div>
+    <div class="metric"><span>${esc(tr("cluster"))}</span><strong>${esc(n.cluster_id)}</strong></div>
+    <div class="evidence"><strong>${esc(tr("evidence"))}</strong><br>${esc(evidenceForLanguage(n.evidence))}</div>
   `;
 }
 
@@ -292,7 +455,7 @@ function renderGraph(gid) {
     if (unique.length <= 12) {
       const tx = (x1+x2)/2, ty=(y1+y2)/2;
       const t = makeSvg("text", {x:tx,y:ty,"text-anchor":"middle",class:"edge-label"});
-      t.textContent = new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:1}).format(e.sum_kzt);
+      t.textContent = compactMoney(e.sum_kzt);
       edgesLayer.appendChild(t);
     }
   }
@@ -314,13 +477,14 @@ function renderGraph(gid) {
 
     const t1 = makeSvg("text", {x:x,y:y-3,"text-anchor":"middle"});
     t1.setAttribute("fill","#ffffff");
-    t1.textContent = selected ? "SELECTED" : shortGid(nid);
+    t1.setAttribute("font-size", selected && currentLang === "ru" ? "9" : "11");
+    t1.textContent = selected ? tr("selected") : shortGid(nid);
     group.appendChild(t1);
 
     const t2 = makeSvg("text", {x:x,y:y+13,"text-anchor":"middle"});
     t2.setAttribute("fill","#ffffff");
     t2.setAttribute("font-size","9");
-    t2.textContent = selected ? shortGid(nid) : n.role;
+    t2.textContent = selected ? shortGid(nid) : shortRoleName(n.role);
     group.appendChild(t2);
 
     group.addEventListener("click", () => selectGid(String(nid)));
@@ -333,28 +497,68 @@ function renderGraph(gid) {
   }
   drawNode(gid, cx, cy, true);
 
-  $("graphTitle").textContent = `Direct network around ${gid}`;
+  $("graphTitle").textContent = `${tr("directAround")} ${gid}`;
   const hidden = Math.max(0, merged.length - shown.length);
-  $("graphNote").textContent =
-    `Showing ${unique.length} neighboring nodes and ${shown.length} direct links.` +
-    (hidden ? ` ${hidden} lower-volume links are omitted from the diagram for readability; they remain listed on the right.` : "");
+
+  if (currentLang === "ru") {
+    $("graphNote").textContent =
+      `${tr("showing")} ${unique.length} ${tr("neighbors")} и ${shown.length} ${tr("directLinks")}.` +
+      (hidden ? ` ${tr("hiddenPrefix")} ${hidden} ${tr("hiddenSuffix")}` : "");
+  } else {
+    $("graphNote").textContent =
+      `${tr("showing")} ${unique.length} ${tr("neighbors")} and ${shown.length} ${tr("directLinks")}.` +
+      (hidden ? ` ${hidden} ${tr("hiddenSuffix")}` : "");
+  }
 }
 
 function selectGid(gid) {
   gid = String(gid).trim();
   const n = nodeMap.get(gid);
   if (!n) {
-    setStatus("GID not found in nodes_roles.csv");
+    setStatus(tr("notFound"));
     return;
   }
 
   currentGid = gid;
   $("gidInput").value = gid;
-  setStatus(`Found · role ${n.role} · cluster ${n.cluster_id}`);
+  setStatus(`${tr("found")} · ${tr("role").toLowerCase()} ${roleName(n.role, currentLang === "ru")} · ${tr("cluster").toLowerCase()} ${n.cluster_id}`);
   renderDetails(n);
   renderList("incoming", incomingMap.get(gid) || [], "in");
   renderList("outgoing", outgoingMap.get(gid) || [], "out");
   renderGraph(gid);
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  $("subtitle").textContent = tr("subtitle");
+  $("gidInput").placeholder = tr("placeholder");
+  $("searchBtn").textContent = tr("find");
+  $("topBtn").textContent = tr("top");
+  $("selectedHeading").textContent = tr("selectedNode");
+  $("incomingHeading").textContent = tr("incoming");
+  $("outgoingHeading").textContent = tr("outgoing");
+  $("graph").setAttribute("aria-label", tr("graphAria"));
+
+  $("langRu").classList.toggle("active", currentLang === "ru");
+  $("langEn").classList.toggle("active", currentLang === "en");
+
+  buildLegend();
+
+  if (currentGid && nodeMap.has(currentGid)) {
+    selectGid(currentGid);
+  } else {
+    $("graphTitle").textContent = tr("network");
+    $("details").innerHTML = `<div class="small">${esc(tr("choose"))}</div>`;
+    $("incoming").innerHTML = "";
+    $("outgoing").innerHTML = "";
+    setStatus("");
+  }
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem("moneygraph_lang", lang);
+  applyLanguage();
 }
 
 $("searchBtn").addEventListener("click", () => selectGid($("gidInput").value));
@@ -364,8 +568,10 @@ $("gidInput").addEventListener("keydown", e => {
 $("topBtn").addEventListener("click", () => {
   if (TOP_GIDS.length) selectGid(TOP_GIDS[0]);
 });
+$("langRu").addEventListener("click", () => setLanguage("ru"));
+$("langEn").addEventListener("click", () => setLanguage("en"));
 
-buildLegend();
+applyLanguage();
 if (TOP_GIDS.length) selectGid(TOP_GIDS[0]);
 </script>
 </body>
@@ -464,11 +670,11 @@ def main():
     target = out_dir / args.file
     target.write_text(html, encoding="utf-8")
 
-    print("QazLedger MoneyGraph Viewer generated")
+    print("QazLedger MoneyGraph Viewer generated / Viewer создан")
     print(f"file: {target}")
     print(f"nodes: {len(roles)}")
     print(f"edges: {len(edges)}")
-    print("Open the HTML file in a browser. No web server or internet connection is required.")
+    print("Open output/viewer.html in a browser. RU is default; use RU/EN switch in the top-right corner.")
 
 
 if __name__ == "__main__":
